@@ -81,13 +81,29 @@ export class GuildService {
   private async ensureManagePermission(guildId: string, userId: string) {
     const guild = await this.prisma.guild.findUnique({ where: { id: guildId } });
     if (!guild) throw new NotFoundException('Guild not found');
-    if (guild.ownerId === userId) return;
+    if (guild.ownerId === userId) return; // owner always allowed
 
     const membership = await this.prisma.guildMembership.findUnique({
       where: { userId_guildId: { userId, guildId } },
     });
     if (!membership) throw new ForbiddenException('Not a member');
-    if (membership.role === 'MEMBER') throw new ForbiddenException('Insufficient guild permissions');
+
+    const weight = this.getRoleWeight(membership.role);
+    if (weight <= this.getRoleWeight('MEMBER')) throw new ForbiddenException('Insufficient guild permissions');
+  }
+
+  private getRoleWeight(role: string) {
+    switch (role) {
+      case 'OWNER':
+        return 4;
+      case 'ADMIN':
+        return 3;
+      case 'MODERATOR':
+        return 2;
+      case 'MEMBER':
+      default:
+        return 1;
+    }
   }
 
   async updateGuild(guildId: string, dto: UpdateGuildDto, userId: string) {
@@ -208,9 +224,26 @@ export class GuildService {
   }
 
   async assignRole(guildId: string, targetUserId: string, role: string, byUserId: string) {
+    // Ensure actor has management permission
     await this.ensureManagePermission(guildId, byUserId);
-    const membership = await this.prisma.guildMembership.findUnique({ where: { userId_guildId: { userId: targetUserId, guildId } } });
-    if (!membership) throw new NotFoundException('Member not found');
-    return this.prisma.guildMembership.update({ where: { id: membership.id }, data: { role: role as any } });
+
+    const actorMembership = await this.prisma.guildMembership.findUnique({ where: { userId_guildId: { userId: byUserId, guildId } } });
+    if (!actorMembership) throw new ForbiddenException('You are not a member');
+
+    const targetMembership = await this.prisma.guildMembership.findUnique({ where: { userId_guildId: { userId: targetUserId, guildId } } });
+    if (!targetMembership) throw new NotFoundException('Member not found');
+
+    // Prevent changing owner's role or assigning OWNER through this endpoint
+    if (targetMembership.role === 'OWNER' || role === 'OWNER') throw new BadRequestException('Cannot assign owner role via this endpoint');
+
+    const actorWeight = this.getRoleWeight(actorMembership.role);
+    const targetWeight = this.getRoleWeight(targetMembership.role);
+    const requestedWeight = this.getRoleWeight(role);
+
+    // Actor must have strictly higher weight than target and must be higher than requested role
+    if (actorWeight <= targetWeight) throw new ForbiddenException('Cannot change role of equal or higher member');
+    if (actorWeight <= requestedWeight) throw new ForbiddenException('Cannot assign a role equal or higher than your own');
+
+    return this.prisma.guildMembership.update({ where: { id: targetMembership.id }, data: { role: role as any } });
   }
 }

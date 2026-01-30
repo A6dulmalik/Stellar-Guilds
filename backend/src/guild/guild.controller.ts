@@ -11,6 +11,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GuildRoleGuard } from './guards/guild-role.guard';
+import { GuildRoles } from './decorators/guild-roles.decorator';
 import { GuildService } from './guild.service';
 import { CreateGuildDto } from './dto/create-guild.dto';
 import { UpdateGuildDto } from './dto/update-guild.dto';
@@ -45,18 +47,24 @@ export class GuildController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseGuards(GuildRoleGuard)
+  @GuildRoles('ADMIN', 'OWNER')
   async update(@Param('id') id: string, @Body() dto: UpdateGuildDto, @Request() req: any) {
     return this.guildService.updateGuild(id, dto, req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @UseGuards(GuildRoleGuard)
+  @GuildRoles('OWNER')
   async remove(@Param('id') id: string, @Request() req: any) {
     return this.guildService.deleteGuild(id, req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/invite')
+  @UseGuards(GuildRoleGuard)
+  @GuildRoles('MODERATOR', 'ADMIN', 'OWNER')
   async invite(@Param('id') id: string, @Body() dto: InviteMemberDto, @Request() req: any) {
     return this.guildService.inviteMember(id, dto, req.user.userId);
   }
@@ -83,6 +91,8 @@ export class GuildController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/assign-role/:userId')
+  @UseGuards(GuildRoleGuard)
+  @GuildRoles('ADMIN', 'OWNER')
   async assignRole(@Param('id') id: string, @Param('userId') userId: string, @Body() body: any, @Request() req: any) {
     return this.guildService.assignRole(id, userId, body.role, req.user.userId);
   }
