@@ -151,7 +151,7 @@ pub fn fund_bounty(env: &Env, bounty_id: u64, funder: Address, amount: i128) -> 
     let is_fully_funded = bounty.funded_amount >= bounty.reward_amount;
 
     if is_fully_funded && bounty.status == BountyStatus::AwaitingFunds {
-        bounty.status = BountyStatus::Open;
+        bounty.status = BountyStatus::Funded;
     }
     store_bounty(env, &bounty);
 
@@ -189,7 +189,7 @@ pub fn claim_bounty(env: &Env, bounty_id: u64, claimer: Address) -> bool {
         panic!("Bounty has expired");
     }
 
-    if bounty.status != BountyStatus::Open {
+    if bounty.status != BountyStatus::Open && bounty.status != BountyStatus::Funded {
         panic!("Bounty is not open for claiming");
     }
 

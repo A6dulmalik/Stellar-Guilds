@@ -11,6 +11,7 @@ pub enum BountyStatus {
     Cancelled = 4,
     Expired = 5,
     AwaitingFunds = 6,
+    Funded = 7,
 }
 
 /// Bounty struct containing all bounty metadata and state

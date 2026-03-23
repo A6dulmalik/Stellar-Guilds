@@ -293,7 +293,7 @@ fn test_fund_bounty_success() {
 
     let bounty = client.get_bounty(&bounty_id);
     assert_eq!(bounty.funded_amount, 100);
-    assert_eq!(bounty.status, BountyStatus::Open);
+    assert_eq!(bounty.status, BountyStatus::Funded);
 }
 
 #[test]
@@ -335,7 +335,7 @@ fn test_fund_bounty_partial_funding() {
     client.fund_bounty(&bounty_id, &funder, &50i128);
     let bounty = client.get_bounty(&bounty_id);
     assert_eq!(bounty.funded_amount, 100);
-    assert_eq!(bounty.status, BountyStatus::Open);
+    assert_eq!(bounty.status, BountyStatus::Funded);
 }
 
 #[test]
@@ -1022,7 +1022,7 @@ fn test_expire_bounty_not_expired_yet() {
     assert_eq!(result, false);
 
     let bounty = client.get_bounty(&bounty_id);
-    assert_eq!(bounty.status, BountyStatus::Open);
+    assert_eq!(bounty.status, BountyStatus::Funded);
 }
 
 // ============ Query Tests ============
@@ -1119,7 +1119,7 @@ fn test_full_bounty_lifecycle() {
     // 2. Fund bounty
     client.fund_bounty(&bounty_id, &funder, &100i128);
     let bounty = client.get_bounty(&bounty_id);
-    assert_eq!(bounty.status, BountyStatus::Open);
+    assert_eq!(bounty.status, BountyStatus::Funded);
 
     // 3. Claim bounty
     client.claim_bounty(&bounty_id, &claimer);
@@ -1208,9 +1208,9 @@ fn test_multiple_bounties_per_guild() {
     let bounty_1 = client.get_bounty(&bounty_id_2);
     let bounty_2 = client.get_bounty(&bounty_id_3);
 
-    assert_eq!(bounty_0.status, BountyStatus::Open);
+    assert_eq!(bounty_0.status, BountyStatus::Funded);
     assert_eq!(bounty_1.status, BountyStatus::AwaitingFunds);
-    assert_eq!(bounty_2.status, BountyStatus::Open);
+    assert_eq!(bounty_2.status, BountyStatus::Funded);
 }
 
 // ============ Admin Operations Tests ============
